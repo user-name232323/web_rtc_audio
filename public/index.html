@@ -524,6 +524,28 @@
         let forwardRequestData = null;
         let allUsers = [];
 
+        // 🔥 Функция для получения токена от Android
+        window.onAndroidToken = function(token) {
+            console.log('📱 Токен от Android:', token);
+            localStorage.setItem('fcm_token', token);
+            
+            // Если пользователь уже залогинен, отправляем сразу
+            if (window.currentUsername) {
+                console.log('📤 Отправляем токен для', window.currentUsername);
+                fetch('https://web-rtc-audio.onrender.com/save-token', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        username: window.currentUsername,
+                        token: token
+                    })
+                })
+                .then(res => res.json())
+                .then(data => console.log('✅ Токен отправлен:', data))
+                .catch(err => console.error('❌ Ошибка:', err));
+            }
+        };
+
         async function login() {
             const username = document.getElementById('username').value.trim();
             if (!username) {
@@ -586,6 +608,28 @@
             socket.on('call-ended', (data) => {
                 endCall();
                 showStatus('📞 Звонок завершен', 'status-ready');
+            });
+            
+            socket.on('login', (username) => {
+                // 🔥 СОХРАНЯЕМ ИМЯ ПОЛЬЗОВАТЕЛЯ
+                window.currentUsername = username;
+                
+                // 🔥 Если есть токен от Android, отправляем на сервер
+                const token = localStorage.getItem('fcm_token');
+                if (token) {
+                    console.log('📤 Отправляем токен для', username);
+                    fetch('https://web-rtc-audio.onrender.com/save-token', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            username: username,
+                            token: token
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => console.log('✅ Токен отправлен:', data))
+                    .catch(err => console.error('❌ Ошибка:', err));
+                }
             });
             
             // Обработчики переадресации
