@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#764ba2">
+    <meta charset="UTF-8">
+    <title>Audial - голосовой чат</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        #login {
+            width: 100%;
+            max-width: 480px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            padding: 32px;
+            animation: slideUp 0.3s ease;
+        }
+        
+        #app {
+            width: 100%;
+            max-width: 480px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            padding: 32px;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 16px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-call {
+            background: linear-gradient(135deg, #00b09b, #96c93d);
+            color: white;
+        }
+
+        .btn-forward {
+            background: linear-gradient(135deg, #9c27b0, #673ab7);
+            color: white;
+            margin-left: 8px;
+        }
+
+        .btn-end {
+            background: linear-gradient(135deg, #eb3349, #f45c43);
+            color: white;
+        }
+
+        .btn-mute {
+            background: linear-gradient(135deg, #f7971e, #ffd200);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #status {
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            font-weight: 500;
+            text-align: center;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+        }
+
+        .status-ready {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left-color: #4caf50;
+        }
+
+        .status-calling {
+            background: #fff3e0;
+            color: #f57c00;
+            border-left-color: #ff9800;
+        }
+
+        .status-connected {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left-color: #2196f3;
+        }
+
+        .call-info {
+            background: linear-gradient(135deg, #667eea15, #764ba215);
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            text-align: center;
+            border: 1px solid #667eea30;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.2); }
+            70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+        }
+
+        #callStatus {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+
+        #callTime {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .users-panel {
+            background: #f8f9fa;
+            border-radius: 20px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+
+        .users-panel h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #userCount {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-left: 8px;
+        }
+
+        .user-item {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #e0e0e0;
+            transition: all 0.2s;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .user-item:hover {
+            border-color: #667eea;
+            transform: translateX(4px);
+        }
+
+        .user-item strong {
+            font-size: 16px;
+            color: #1a1a1a;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .call-controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .call-controls .btn {
+            flex: 1;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .error-message {
+            color: #eb3349;
+            font-size: 14px;
+            margin-top: 12px;
+            padding: 12px;
+            background: #ffebee;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .avatar {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: white;
+        }
+
+        .incoming-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .incoming-box {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            width: 90%;
+            max-width: 320px;
+            text-align: center;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .incoming-box h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+
+        .incoming-box p {
+            font-size: 18px;
+            color: #667eea;
+            font-weight: 600;
+            margin: 16px 0;
+            padding: 16px;
+            background: #f0f2ff;
+            border-radius: 12px;
+        }
+
+        .incoming-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .accept-btn {
+            background: linear-gradient(135deg, #00b09b, #96c93d);
+            flex: 1;
+        }
+
+        .decline-btn {
+            background: linear-gradient(135deg, #eb3349, #f45c43);
+            flex: 1;
+        }
+
+        .trusted-users-list {
+            max-height: 250px;
+            overflow-y: auto;
+            margin: 16px 0;
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+        }
+
+        .trusted-info {
+            font-size: 14px;
+            color: #9c27b0;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        @media (max-width: 480px) {
+            #login, #app {
+                padding: 24px;
+            }
+
+            .call-controls {
+                flex-direction: column;
+            }
+
+            .user-item {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .user-item .btn {
+                width: 100%;
+            }
+
+            .user-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .incoming-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="login">
+        <div class="avatar">🎤</div>
+        <h1>Audial</h1>
+        <div class="subtitle">Голосовые звонки без регистрации</div>
+        
+        <div class="input-group">
+            <input type="text" id="username" placeholder="Введите ваше имя" autocomplete="off">
+        </div>
+        
+        <button onclick="login()" class="btn btn-primary">
+            <span>📱</span> Войти в чат
+        </button>
+        
+        <div id="loginError" class="error-message hidden"></div>
+    </div>
+
+    <div id="app" class="hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h1 style="margin-bottom: 0;">Audial</h1>
+            <span style="background: #f0f0f0; padding: 8px 16px; border-radius: 20px; font-size: 14px;">
+                🟢 Онлайн
+            </span>
+        </div>
+
+        <div id="status" class="status-ready">
+            🎤 Готов к звонкам
+        </div>
+
+        <div id="callInfo" class="call-info hidden">
+            <div id="callStatus">Звонок активен</div>
+            <div id="callTime">00:00</div>
+        </div>
+
+        <div class="users-panel">
+            <h2>
+                <span>👥 Участники</span>
+                <span id="userCount">0</span>
+            </h2>
+            <div id="userList">Загрузка...</div>
+        </div>
+
+        <div class="call-controls">
+            <button onclick="toggleMute()" id="muteBtn" class="btn btn-mute" disabled>
+                🔇 Выключить микрофон
+            </button>
+            <button onclick="endCall()" id="endCallBtn" class="btn btn-end" disabled>
+                📞 Завершить
+            </button>
+        </div>
+
+        <audio id="remoteAudio" autoplay></audio>
+    </div>
+
+    <div id="incomingCallModal" class="incoming-modal hidden">
+        <div class="incoming-box">
+            <div class="avatar">📞</div>
+            <h2>Входящий звонок</h2>
+            <p id="callerName">Пользователь</p>
+            <div id="trustedDisplay" class="trusted-info"></div>
+            <div class="incoming-buttons">
+                <button class="btn accept-btn" onclick="acceptCall()">✅ Принять</button>
+                <button class="btn decline-btn" onclick="declineCall()">❌ Отклонить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для выбора доверителя -->
+    <div id="forwardModal" class="incoming-modal hidden">
+        <div class="incoming-box">
+            <div class="avatar">🔄</div>
+            <h2>Переадресация звонка</h2>
+            <p>Выберите доверителя для звонка <strong id="forwardTargetName"></strong></p>
+            <div id="trustedUsersList" class="trusted-users-list">
+                <!-- Список будет заполнен динамически -->
+            </div>
+            <div class="incoming-buttons">
+                <button class="btn decline-btn" onclick="closeForwardModal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно запроса доверителю -->
+    <div id="trustedRequestModal" class="incoming-modal hidden">
+        <div class="incoming-box">
+            <div class="avatar">🤝</div>
+            <h2>Запрос переадресации</h2>
+            <p id="forwardRequestInfo">Пользователь просит переадресовать звонок</p>
+            <div class="incoming-buttons">
+                <button class="btn accept-btn" onclick="acceptForwardRequest()">✅ Одобрить</button>
+                <button class="btn decline-btn" onclick="declineForwardRequest()">❌ Отклонить</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+        let socket;
+        let pc;
+        let localStream;
+        let currentCall = null;
+        let isMuted = false;
+        let callStartTime = 0;
+        let callTimer = null;
+        let incomingCallData = null;
+        
+        // Переменные для переадресации
+        let forwardTarget = null;
+        let forwardRequestData = null;
+        let allUsers = [];
+
+        async function login() {
+            const username = document.getElementById('username').value.trim();
+            if (!username) {
+                showError('Введите ваше имя');
+                return;
+            }
+            
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    },
+                    video: false
+                });
+                
+                console.log('✅ Микрофон подключен');
+                
+                socket = io();
+                socket.emit('login', username);
+                
+                document.getElementById('login').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+                showStatus('✅ Вы вошли как ' + username, 'status-ready');
+                
+                setupSocketListeners();
+                
+            } catch (err) {
+                console.error('Ошибка микрофона:', err);
+                
+                if (err.name === 'NotAllowedError') {
+                    showError('Доступ к микрофону запрещен. Разрешите доступ в настройках браузера.');
+                } else if (err.name === 'NotFoundError') {
+                    showError('Микрофон не найден. Проверьте подключение микрофона.');
+                } else {
+                    showError('Ошибка: ' + err.message);
+                }
+            }
+        }
+        
+        function setupSocketListeners() {
+            socket.on('users', (users) => {
+                allUsers = users;
+                updateUserList(users);
+            });
+            
+            socket.on('incoming-call', (data) => {
+                handleIncomingCall(data);
+            });
+            
+            socket.on('call-answered', (data) => {
+                handleCallAnswered(data);
+            });
+            
+            socket.on('ice-candidate', (data) => {
+                handleIceCandidate(data);
+            });
+            
+            socket.on('call-ended', (data) => {
+                endCall();
+                showStatus('📞 Звонок завершен', 'status-ready');
+            });
+            
+            // Обработчики переадресации
+            socket.on('forward-request', (data) => {
+                handleForwardRequest(data);
+            });
+            
+            socket.on('forward-approved', (data) => {
+                handleForwardApproved(data);
+            });
+            
+            socket.on('forward-rejected', () => {
+                alert('Доверитель отклонил запрос');
+                showStatus('✅ Готов к звонкам', 'status-ready');
+            });
+        }
+        
+        function updateUserList(users) {
+            const currentId = socket.id;
+            const userList = document.getElementById('userList');
+            
+            const otherUsers = users.filter(u => u.id !== currentId);
+            
+            document.getElementById('userCount').textContent = otherUsers.length;
+            
+            if (otherUsers.length === 0) {
+                userList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">👀 Нет активных пользователей</div>';
+                return;
+            }
+            
+            let html = '';
+            otherUsers.forEach(user => {
+                html += `
+                <div class="user-item">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 20px;">👤</span>
+                        <strong>${user.name}</strong>
+                    </div>
+                    <div class="user-actions">
+                        <button class="btn btn-call" onclick="startCall('${user.id}', '${user.name}')" style="padding: 12px 20px;">
+                            📞
+                        </button>
+                        <button class="btn btn-forward" onclick="openForwardModal('${user.id}', '${user.name}')" style="padding: 12px 20px;">
+                            🔄
+                        </button>
+                    </div>
+                </div>
+                `;
+            });
+            
+            userList.innerHTML = html;
+        }
+        
+        function openForwardModal(targetId, targetName) {
+            if (currentCall) {
+                alert('Уже в звонке. Завершите текущий звонок.');
+                return;
+            }
+            
+            // Сохраняем цель в глобальные переменные
+            forwardTarget = { id: targetId, name: targetName };
+            
+            document.getElementById('forwardTargetName').textContent = targetName;
+            
+            // Получаем список доверителей (все кроме себя и цели)
+            const currentId = socket.id;
+            const otherUsers = allUsers.filter(u => u.id !== currentId && u.id !== targetId);
+            
+            if (otherUsers.length === 0) {
+                alert('Нет доступных доверителей');
+                return;
+            }
+            
+            let html = '';
+            otherUsers.forEach(user => {
+                html += `
+                <div style="background: white; border-radius: 12px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #e0e0e0;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 20px;">👤</span>
+                        <strong>${user.name}</strong>
+                    </div>
+                    <button onclick="selectTrustedUser('${user.id}', '${user.name}')" style="background: linear-gradient(135deg, #00b09b, #96c93d); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; width: auto;">
+                        Выбрать
+                    </button>
+                </div>
+                `;
+            });
+            
+            document.getElementById('trustedUsersList').innerHTML = html;
+            document.getElementById('forwardModal').classList.remove('hidden');
+        }
+        
+        function closeForwardModal() {
+            document.getElementById('forwardModal').classList.add('hidden');
+            // НЕ очищаем forwardTarget, чтобы не потерять
+        }
+        
+        function selectTrustedUser(trustedId, trustedName) {
+            console.log('Выбран доверитель:', trustedName);
+            console.log('Цель звонка:', forwardTarget);
+            
+            // Закрываем модальное окно
+            document.getElementById('forwardModal').classList.add('hidden');
+            
+            if (!forwardTarget) {
+                alert('Ошибка: цель звонка не выбрана. Попробуйте снова.');
+                return;
+            }
+            
+            showStatus(`📞 Запрос разрешения у ${trustedName}...`, 'status-calling');
+            
+            // Отправляем запрос доверителю
+            socket.emit('forward-call', {
+                trustedId: trustedId,
+                targetId: forwardTarget.id,
+                targetName: forwardTarget.name
+            });
+            
+            console.log('Запрос отправлен');
+        }
+        
+        function handleForwardRequest(data) {
+            console.log('Получен запрос переадресации:', data);
+            forwardRequestData = data;
+            document.getElementById('forwardRequestInfo').innerHTML = 
+                `<strong>${data.callerName}</strong> хочет позвонить <strong>${data.targetName}</strong><br>Через вас`;
+            document.getElementById('trustedRequestModal').classList.remove('hidden');
+        }
+        
+        function acceptForwardRequest() {
+            document.getElementById('trustedRequestModal').classList.add('hidden');
+            
+            if (!forwardRequestData) return;
+            
+            console.log('Одобрение запроса для:', forwardRequestData.callerName);
+            
+            // Одобряем запрос
+            socket.emit('forward-accept', {
+                callerId: forwardRequestData.callerId,
+                targetId: forwardRequestData.targetId,
+                targetName: forwardRequestData.targetName
+            });
+            
+            forwardRequestData = null;
+        }
+        
+        function declineForwardRequest() {
+            document.getElementById('trustedRequestModal').classList.add('hidden');
+            if (forwardRequestData) {
+                socket.emit('forward-reject', {
+                    callerId: forwardRequestData.callerId
+                });
+            }
+            forwardRequestData = null;
+        }
+        
+        function handleForwardApproved(data) {
+            console.log('Запрос одобрен, звоню:', data.targetName, 'через доверителя:', data.trustedName);
+            showStatus(`📞 Звонок ${data.targetName}...`, 'status-calling');
+            
+            // Звоним с информацией о доверителе
+            startCallWithTrusted(data.targetId, data.targetName, data.trustedName);
+        }
+        
+        async function startCallWithTrusted(targetId, targetName, trustedName) {
+            if (currentCall) {
+                alert('Уже в звонке. Завершите текущий звонок.');
+                return;
+            }
+            
+            currentCall = { id: targetId, name: targetName };
+            
+            try {
+                pc = new RTCPeerConnection({
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                });
+                
+                localStream.getAudioTracks().forEach(track => {
+                    pc.addTrack(track, localStream);
+                });
+                
+                pc.ontrack = (event) => {
+                    console.log('✅ Аудио поток получен');
+                    const remoteAudio = document.getElementById('remoteAudio');
+                    
+                    if (event.streams && event.streams[0]) {
+                        remoteAudio.srcObject = event.streams[0];
+                        startCallTimer();
+                        showCallInfo(targetName);
+                        showStatus(`🎧 Разговор с ${targetName}`, 'status-connected');
+                        
+                        remoteAudio.play().catch(e => {
+                            console.log('Автовоспроизведение заблокировано');
+                        });
+                    }
+                };
+                
+                pc.onicecandidate = (event) => {
+                    if (event.candidate && currentCall) {
+                        socket.emit('ice-candidate', {
+                            to: currentCall.id,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+                
+                const offer = await pc.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: false
+                });
+                
+                await pc.setLocalDescription(offer);
+                
+                // Отправляем звонок с информацией о доверителе
+                socket.emit('call', {
+                    to: targetId,
+                    offer: offer,
+                    callType: 'audio',
+                    trustedByName: trustedName
+                });
+                
+                document.getElementById('muteBtn').disabled = false;
+                document.getElementById('endCallBtn').disabled = false;
+                
+            } catch (err) {
+                console.error('Ошибка звонка:', err);
+                showStatus('❌ Ошибка звонка', 'status-ready');
+                endCall();
+            }
+        }
+        
+        async function startCall(targetId, targetName) {
+            if (currentCall) {
+                alert('Уже в звонке. Завершите текущий звонок.');
+                return;
+            }
+            
+            currentCall = { id: targetId, name: targetName };
+            
+            try {
+                pc = new RTCPeerConnection({
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                });
+                
+                localStream.getAudioTracks().forEach(track => {
+                    pc.addTrack(track, localStream);
+                });
+                
+                pc.ontrack = (event) => {
+                    console.log('✅ Аудио поток получен');
+                    const remoteAudio = document.getElementById('remoteAudio');
+                    
+                    if (event.streams && event.streams[0]) {
+                        remoteAudio.srcObject = event.streams[0];
+                        startCallTimer();
+                        showCallInfo(targetName);
+                        showStatus(`🎧 Разговор с ${targetName}`, 'status-connected');
+                        
+                        remoteAudio.play().catch(e => {
+                            console.log('Автовоспроизведение заблокировано');
+                        });
+                    }
+                };
+                
+                pc.onicecandidate = (event) => {
+                    if (event.candidate && currentCall) {
+                        socket.emit('ice-candidate', {
+                            to: currentCall.id,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+                
+                const offer = await pc.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: false
+                });
+                
+                await pc.setLocalDescription(offer);
+                
+                socket.emit('call', {
+                    to: targetId,
+                    offer: offer,
+                    callType: 'audio'
+                });
+                
+                document.getElementById('muteBtn').disabled = false;
+                document.getElementById('endCallBtn').disabled = false;
+                
+            } catch (err) {
+                console.error('Ошибка звонка:', err);
+                showStatus('❌ Ошибка звонка', 'status-ready');
+                endCall();
+            }
+        }
+        
+        function handleIncomingCall(data) {
+            if (currentCall) {
+                console.log('Занято, звонок отклонен');
+                return;
+            }
+
+            incomingCallData = data;
+            document.getElementById('callerName').textContent = data.fromName;
+            
+            // Если есть информация о доверителе, показываем её
+            const trustedDisplay = document.getElementById('trustedDisplay');
+            if (data.trustedByName) {
+                trustedDisplay.textContent = `📞 через ${data.trustedByName}`;
+                trustedDisplay.style.display = 'block';
+            } else {
+                trustedDisplay.style.display = 'none';
+            }
+            
+            document.getElementById('incomingCallModal').classList.remove('hidden');
+        }
+
+        async function acceptCall() {
+            document.getElementById('incomingCallModal').classList.add('hidden');
+            const data = incomingCallData;
+            
+            currentCall = { id: data.from, name: data.fromName };
+            showStatus(`📞 Принимаю звонок от ${data.fromName}...`, 'status-calling');
+            
+            try {
+                pc = new RTCPeerConnection({
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                });
+                
+                localStream.getAudioTracks().forEach(track => {
+                    pc.addTrack(track, localStream);
+                });
+                
+                pc.ontrack = (event) => {
+                    console.log('✅ Аудио поток получен');
+                    const remoteAudio = document.getElementById('remoteAudio');
+                    
+                    if (event.streams && event.streams[0]) {
+                        remoteAudio.srcObject = event.streams[0];
+                        startCallTimer();
+                        showCallInfo(data.fromName);
+                        showStatus(`🎧 Разговор с ${data.fromName}`, 'status-connected');
+                        
+                        remoteAudio.play().catch(e => {
+                            console.log('Автовоспроизведение заблокировано');
+                        });
+                    }
+                };
+                
+                pc.onicecandidate = (event) => {
+                    if (event.candidate && currentCall) {
+                        socket.emit('ice-candidate', {
+                            to: currentCall.id,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+                
+                await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+                
+                const answer = await pc.createAnswer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: false
+                });
+                
+                await pc.setLocalDescription(answer);
+                
+                socket.emit('answer', {
+                    to: data.from,
+                    answer: answer
+                });
+                
+                document.getElementById('muteBtn').disabled = false;
+                document.getElementById('endCallBtn').disabled = false;
+                
+            } catch (err) {
+                console.error('Ошибка принятия звонка:', err);
+                showStatus('❌ Ошибка', 'status-ready');
+                endCall();
+            }
+            
+            incomingCallData = null;
+        }
+
+        function declineCall() {
+            document.getElementById('incomingCallModal').classList.add('hidden');
+            incomingCallData = null;
+        }
+        
+        async function handleCallAnswered(data) {
+            if (pc && currentCall && currentCall.id === data.from) {
+                try {
+                    await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    console.log('✅ Соединение установлено');
+                } catch (err) {
+                    console.error('Ошибка:', err);
+                }
+            }
+        }
+        
+        async function handleIceCandidate(data) {
+            if (pc && currentCall && currentCall.id === data.from) {
+                try {
+                    await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+                } catch (err) {
+                    console.error('Ошибка ICE:', err);
+                }
+            }
+        }
+        
+        function toggleMute() {
+            if (!localStream) return;
+            
+            const audioTracks = localStream.getAudioTracks();
+            if (audioTracks.length > 0) {
+                isMuted = !audioTracks[0].enabled;
+                audioTracks[0].enabled = !isMuted;
+                
+                const muteBtn = document.getElementById('muteBtn');
+                muteBtn.textContent = isMuted ? '🎤 Включить микрофон' : '🔇 Выключить микрофон';
+                muteBtn.style.background = isMuted ? 'linear-gradient(135deg, #667eea, #764ba2)' : 'linear-gradient(135deg, #f7971e, #ffd200)';
+            }
+        }
+        
+        function endCall() {
+            if (callTimer) {
+                clearInterval(callTimer);
+                callTimer = null;
+            }
+            
+            if (pc) {
+                pc.close();
+                pc = null;
+            }
+            
+            if (currentCall) {
+                socket.emit('hangup', { to: currentCall.id });
+                currentCall = null;
+            }
+            
+            const remoteAudio = document.getElementById('remoteAudio');
+            if (remoteAudio.srcObject) {
+                remoteAudio.srcObject.getTracks().forEach(track => track.stop());
+                remoteAudio.srcObject = null;
+            }
+            
+            document.getElementById('callInfo').classList.add('hidden');
+            document.getElementById('muteBtn').disabled = true;
+            document.getElementById('endCallBtn').disabled = true;
+            document.getElementById('muteBtn').textContent = '🔇 Выключить микрофон';
+            document.getElementById('muteBtn').style.background = 'linear-gradient(135deg, #f7971e, #ffd200)';
+            
+            showStatus('✅ Готов к звонкам', 'status-ready');
+        }
+        
+        function startCallTimer() {
+            callStartTime = Date.now();
+            document.getElementById('callInfo').classList.remove('hidden');
+            
+            if (callTimer) clearInterval(callTimer);
+            
+            callTimer = setInterval(() => {
+                const elapsed = Date.now() - callStartTime;
+                const minutes = Math.floor(elapsed / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                
+                document.getElementById('callTime').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        function showCallInfo(remoteName) {
+            document.getElementById('callStatus').innerHTML = `🎧 Разговор с <strong>${remoteName}</strong>`;
+        }
+        
+        function showStatus(message, className) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = className;
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+        
+        document.getElementById('username').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+        
+        window.addEventListener('beforeunload', () => {
+            endCall();
+            if (socket) socket.disconnect();    
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+        });
+        
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js');
+            });
+        }
+    </script>
+</body>
+</html>
