@@ -1,22 +1,34 @@
-// server.js
 const express = require("express");
 const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http);
 
 // ------------------------
-// 🔥 Firebase Admin SDK (через ENV)
+// 🔥 Firebase Admin SDK (через Secret File)
 // ------------------------
 let admin;
-if (process.env.FIREBASE_KEY_JSON) {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_KEY_JSON);
+try {
     admin = require("firebase-admin");
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-    });
-    console.log("✅ Firebase Admin инициализирован");
-} else {
-    console.log("⚠️ Firebase отключен (нет ENV.FIREBASE_KEY_JSON)");
+    const fs = require('fs');
+    
+    // Путь к секретному файлу на Render
+    const secretFilePath = '/etc/secrets/serviceAccountKey.json';
+    
+    if (fs.existsSync(secretFilePath)) {
+        const serviceAccount = JSON.parse(fs.readFileSync(secretFilePath, 'utf8'));
+        
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+        });
+        console.log("✅ Firebase успешно инициализирован из секретного файла!");
+        console.log("📁 Файл загружен:", secretFilePath);
+    } else {
+        console.log("⚠️ Firebase отключен - файл не найден по пути:", secretFilePath);
+        console.log("📁 Текущая директория:", process.cwd());
+        console.log("📁 Содержимое /etc/secrets:", fs.readdirSync('/etc/secrets').join(', '));
+    }
+} catch (error) {
+    console.error("❌ Ошибка инициализации Firebase:", error.message);
 }
 
 // ------------------------
@@ -61,7 +73,7 @@ io.on("connection", (socket) => {
 
         console.log(`📞 Звонок от ${socket.username} к ${target.name}`);
 
-        // WebSocket
+        // WebSocket (всегда)
         io.to(data.to).emit("incoming-call", {
             from: socket.id,
             fromName: socket.username,
@@ -69,16 +81,23 @@ io.on("connection", (socket) => {
             trustedByName: data.trustedByName || null
         });
 
-        // Push (если Firebase есть)
-        if (admin) sendPushNotification(target.name, {
-            caller: socket.username,
-            call_id: Date.now().toString()
-        });
+        // Push уведомление (если Firebase есть)
+        if (admin) {
+            sendPushNotification(target.name, {
+                caller: socket.username,
+                call_id: Date.now().toString()
+            });
+        } else {
+            console.log("⚠️ Firebase не инициализирован, push не отправлен");
+        }
     });
 
     async function sendPushNotification(username, callData) {
         const token = userTokens[username];
-        if (!token) return console.log(`❌ Нет FCM токена для ${username}`);
+        if (!token) {
+            console.log(`❌ Нет FCM токена для ${username}`);
+            return;
+        }
 
         const message = {
             token: token,
@@ -87,33 +106,50 @@ io.on("connection", (socket) => {
                 call_id: callData.call_id,
                 timestamp: Date.now().toString()
             },
-            android: { priority: "high", ttl: 24*60*60*1000 }
+            android: { 
+                priority: "high", 
+                ttl: 24 * 60 * 60 * 1000 // 24 часа
+            }
         };
 
         try {
             const response = await admin.messaging().send(message);
             console.log(`✅ Push отправлен ${username}:`, response);
         } catch (err) {
-            console.error(`❌ Ошибка push для ${username}:`, err);
+            console.error(`❌ Ошибка push для ${username}:`, err.message);
         }
     }
 
     socket.on("answer", (data) => {
-        io.to(data.to).emit("call-answered", { from: socket.id, answer: data.answer });
+        console.log(`✅ Ответ от ${socket.username} на звонок`);
+        io.to(data.to).emit("call-answered", { 
+            from: socket.id, 
+            answer: data.answer 
+        });
     });
 
     socket.on("ice-candidate", (data) => {
-        io.to(data.to).emit("ice-candidate", { from: socket.id, candidate: data.candidate });
+        io.to(data.to).emit("ice-candidate", { 
+            from: socket.id, 
+            candidate: data.candidate 
+        });
     });
 
     socket.on("hangup", (data) => {
-        io.to(data.to).emit("call-ended", { from: socket.id });
+        console.log(`📞 Завершение звонка от ${socket.username}`);
+        io.to(data.to).emit("call-ended", { 
+            from: socket.id 
+        });
     });
 
+    // Переадресация
     socket.on("forward-call", (data) => {
         const trusted = users.find(u => u.id === data.trustedId);
         const target = users.find(u => u.id === data.targetId);
+        
         if (trusted && target) {
+            console.log(`🔄 Запрос переадресации от ${socket.username} к ${target.name} через ${trusted.name}`);
+            
             io.to(data.trustedId).emit("forward-request", {
                 callerId: socket.id,
                 callerName: socket.username,
@@ -128,7 +164,10 @@ io.on("connection", (socket) => {
         const target = users.find(u => u.id === data.targetId);
         const caller = users.find(u => u.id === data.callerId);
         const trusted = users.find(u => u.id === socket.id);
+        
         if (target && caller && trusted) {
+            console.log(`✅ Доверитель ${trusted.name} одобрил звонок от ${caller.name} к ${target.name}`);
+            
             io.to(data.callerId).emit("forward-approved", {
                 targetId: data.targetId,
                 targetName: data.targetName,
@@ -139,14 +178,17 @@ io.on("connection", (socket) => {
 
     socket.on("forward-reject", (data) => {
         const caller = users.find(u => u.id === data.callerId);
-        if (caller) io.to(data.callerId).emit("forward-rejected");
+        if (caller) {
+            console.log(`❌ Доверитель отклонил запрос`);
+            io.to(data.callerId).emit("forward-rejected");
+        }
     });
 
     socket.on("disconnect", () => {
         if (socket.username) {
+            console.log(socket.username, "вышел");
             users = users.filter(u => u.id !== socket.id);
             io.emit("users", users);
-            console.log(socket.username, "вышел");
         }
     });
 });
