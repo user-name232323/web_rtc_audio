@@ -55,6 +55,77 @@ app.post("/save-token", (req, res) => {
 });
 
 // ------------------------
+// Функция отправки push для обычного звонка
+// ------------------------
+async function sendPushNotification(username, callData) {
+    const token = userTokens[username];
+    if (!token) {
+        console.log(`❌ Нет FCM токена для ${username}`);
+        return;
+    }
+
+    console.log(`📤 Данные для push (звонок):`, callData);
+
+    const message = {
+        token: token,
+        data: {
+            type: "call",
+            caller: callData.caller || "Неизвестный",
+            call_id: callData.call_id || Date.now().toString(),
+            timestamp: Date.now().toString()
+        },
+        android: { 
+            priority: "high", 
+            ttl: 24 * 60 * 60 * 1000 // 24 часа
+        }
+    };
+
+    try {
+        const response = await admin.messaging().send(message);
+        console.log(`✅ Push отправлен ${username}:`, response);
+    } catch (err) {
+        console.error(`❌ Ошибка push для ${username}:`, err.message);
+    }
+}
+
+// ------------------------
+// Функция отправки push для переадресации
+// ------------------------
+async function sendForwardPushNotification(username, forwardData) {
+    const token = userTokens[username];
+    if (!token) {
+        console.log(`❌ Нет FCM токена для ${username} (переадресация)`);
+        return;
+    }
+
+    console.log(`📤 Данные для push (переадресация):`, forwardData);
+
+    const message = {
+        token: token,
+        data: {
+            type: "forward_request",
+            callerName: forwardData.callerName,
+            targetName: forwardData.targetName,
+            callerId: forwardData.callerId,
+            targetId: forwardData.targetId,
+            requestId: forwardData.requestId || Date.now().toString(),
+            timestamp: Date.now().toString()
+        },
+        android: { 
+            priority: "high",
+            ttl: 24 * 60 * 60 * 1000
+        }
+    };
+
+    try {
+        const response = await admin.messaging().send(message);
+        console.log(`✅ Push переадресации отправлен ${username}:`, response);
+    } catch (err) {
+        console.error(`❌ Ошибка push переадресации для ${username}:`, err.message);
+    }
+}
+
+// ------------------------
 // Socket.IO события
 // ------------------------
 io.on("connection", (socket) => {
@@ -72,6 +143,7 @@ io.on("connection", (socket) => {
         if (!target) return;
 
         console.log(`📞 Звонок от ${socket.username} к ${target.name}`);
+        console.log(`📞 socket.username = ${socket.username}`);
 
         // WebSocket (всегда)
         io.to(data.to).emit("incoming-call", {
@@ -91,34 +163,6 @@ io.on("connection", (socket) => {
             console.log("⚠️ Firebase не инициализирован, push не отправлен");
         }
     });
-
-    async function sendPushNotification(username, callData) {
-        const token = userTokens[username];
-        if (!token) {
-            console.log(`❌ Нет FCM токена для ${username}`);
-            return;
-        }
-
-        const message = {
-            token: token,
-            data: {
-                caller: callData.caller,
-                call_id: callData.call_id,
-                timestamp: Date.now().toString()
-            },
-            android: { 
-                priority: "high", 
-                ttl: 24 * 60 * 60 * 1000 // 24 часа
-            }
-        };
-
-        try {
-            const response = await admin.messaging().send(message);
-            console.log(`✅ Push отправлен ${username}:`, response);
-        } catch (err) {
-            console.error(`❌ Ошибка push для ${username}:`, err.message);
-        }
-    }
 
     socket.on("answer", (data) => {
         console.log(`✅ Ответ от ${socket.username} на звонок`);
@@ -150,6 +194,7 @@ io.on("connection", (socket) => {
         if (trusted && target) {
             console.log(`🔄 Запрос переадресации от ${socket.username} к ${target.name} через ${trusted.name}`);
             
+            // Отправляем через WebSocket
             io.to(data.trustedId).emit("forward-request", {
                 callerId: socket.id,
                 callerName: socket.username,
@@ -157,6 +202,17 @@ io.on("connection", (socket) => {
                 targetName: data.targetName,
                 trustedName: trusted.name
             });
+
+            // 🔥 PUSH ДЛЯ ДОВЕРИТЕЛЯ
+            if (admin) {
+                sendForwardPushNotification(trusted.name, {
+                    callerName: socket.username,
+                    targetName: target.name,
+                    callerId: socket.id,
+                    targetId: data.targetId,
+                    requestId: Date.now().toString()
+                });
+            }
         }
     });
 
