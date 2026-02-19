@@ -510,6 +510,14 @@
     <script src="/socket.io/socket.io.js"></script>
 
     <script>
+        // ========== ДИАГНОСТИКА ПРИ ЗАГРУЗКЕ ==========
+        console.log("🔍 Сайт загружен");
+        console.log("🔍 localStorage токен:", localStorage.getItem('fcm_token'));
+        console.log("🔍 Android доступен:", !!window.Android);
+        if (window.Android) {
+            console.log("🔍 Метод getToken доступен:", typeof window.Android.getToken === 'function');
+        }
+
         let socket;
         let pc;
         let localStream;
@@ -524,25 +532,55 @@
         let forwardRequestData = null;
         let allUsers = [];
 
-        // 🔥 Функция для получения токена от Android
+        // ========== ФУНКЦИЯ ДЛЯ ОТПРАВКИ ТОКЕНА ==========
+        function sendTokenToServer(username, token) {
+            console.log('📤 Отправляем токен для', username);
+            console.log('📤 Токен:', token.substring(0, 20) + '...');
+            
+            const url = '/save-token';
+            console.log('🔍 URL:', url);
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    username: username,
+                    token: token
+                })
+            })
+            .then(res => {
+                console.log('📥 Статус ответа:', res.status);
+                return res.json();
+            })
+            .then(data => {
+                console.log('✅ Ответ сервера:', data);
+                if (data.success) {
+                    console.log('🎉 Токен успешно сохранен для', username);
+                }
+            })
+            .catch(err => {
+                console.error('❌ Ошибка fetch:', err);
+                console.error('❌ Сообщение:', err.message);
+            });
+        }
+
+        // ========== ПОЛУЧЕНИЕ ТОКЕНА ОТ ANDROID ==========
         window.onAndroidToken = function(token) {
-            console.log('📱 Токен от Android:', token);
+            console.log('📱 Токен от Android ПОЛУЧЕН!');
+            console.log('📱 Токен:', token.substring(0, 20) + '...');
+            console.log('🔍 Длина токена:', token.length);
+            
             localStorage.setItem('fcm_token', token);
+            console.log('💾 Токен сохранен в localStorage');
+            
+            // Проверяем, есть ли имя пользователя
+            console.log('🔍 currentUsername =', window.currentUsername);
             
             // Если пользователь уже залогинен, отправляем сразу
             if (window.currentUsername) {
-                console.log('📤 Отправляем токен для', window.currentUsername);
-                fetch('https://web-rtc-audio.onrender.com/save-token', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        username: window.currentUsername,
-                        token: token
-                    })
-                })
-                .then(res => res.json())
-                .then(data => console.log('✅ Токен отправлен:', data))
-                .catch(err => console.error('❌ Ошибка:', err));
+                sendTokenToServer(window.currentUsername, token);
+            } else {
+                console.log('⏳ Ожидание логина, токен сохранен в localStorage');
             }
         };
 
@@ -568,6 +606,15 @@
                 socket = io();
                 socket.emit('login', username);
                 
+                // ========== ПРИНУДИТЕЛЬНАЯ ОТПРАВКА ТОКЕНА ПРИ ЛОГИНЕ ==========
+                const savedToken = localStorage.getItem('fcm_token');
+                if (savedToken) {
+                    console.log('📤 Найден сохраненный токен, отправляем при логине');
+                    sendTokenToServer(username, savedToken);
+                } else {
+                    console.log('⏳ Нет сохраненного токена в localStorage');
+                }
+                
                 document.getElementById('login').classList.add('hidden');
                 document.getElementById('app').classList.remove('hidden');
                 showStatus('✅ Вы вошли как ' + username, 'status-ready');
@@ -575,7 +622,7 @@
                 setupSocketListeners();
                 
             } catch (err) {
-                console.error('Ошибка микрофона:', err);
+                console.error('❌ Ошибка микрофона:', err);
                 
                 if (err.name === 'NotAllowedError') {
                     showError('Доступ к микрофону запрещен. Разрешите доступ в настройках браузера.');
@@ -613,22 +660,13 @@
             socket.on('login', (username) => {
                 // 🔥 СОХРАНЯЕМ ИМЯ ПОЛЬЗОВАТЕЛЯ
                 window.currentUsername = username;
+                console.log('👤 Установлено имя пользователя:', username);
                 
                 // 🔥 Если есть токен от Android, отправляем на сервер
                 const token = localStorage.getItem('fcm_token');
                 if (token) {
-                    console.log('📤 Отправляем токен для', username);
-                    fetch('https://web-rtc-audio.onrender.com/save-token', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            username: username,
-                            token: token
-                        })
-                    })
-                    .then(res => res.json())
-                    .then(data => console.log('✅ Токен отправлен:', data))
-                    .catch(err => console.error('❌ Ошибка:', err));
+                    console.log('📤 Отправляем токен для', username, '(из события login)');
+                    sendTokenToServer(username, token);
                 }
             });
             
