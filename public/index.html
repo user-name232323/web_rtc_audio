@@ -584,6 +584,36 @@
             }
         };
 
+        // ========== ОБРАБОТКА ЗВОНКА ИЗ PUSH УВЕДОМЛЕНИЯ ==========
+        window.handleIncomingCallFromPush = function(caller, callId) {
+            console.log('📞 ЗВОНОК ИЗ PUSH! caller:', caller, 'callId:', callId);
+            
+            // Если уже есть входящий звонок, игнорируем
+            if (incomingCallData) {
+                console.log('⏳ Уже есть входящий звонок, игнорируем push');
+                return;
+            }
+            
+            // Если уже в звонке, игнорируем
+            if (currentCall) {
+                console.log('⏳ Уже в звонке, игнорируем push');
+                return;
+            }
+            
+            // Показываем модальное окно входящего звонка
+            document.getElementById('callerName').textContent = caller;
+            document.getElementById('incomingCallModal').classList.remove('hidden');
+            
+            // Создаем данные звонка для последующего принятия
+            incomingCallData = {
+                from: callId,
+                fromName: caller,
+                offer: null  // В push нет offer, он придет через WebSocket
+            };
+            
+            console.log('✅ Модальное окно показано, ждем offer через WebSocket');
+        };
+
         async function login() {
             const username = document.getElementById('username').value.trim();
             if (!username) {
@@ -641,7 +671,16 @@
             });
             
             socket.on('incoming-call', (data) => {
-                handleIncomingCall(data);
+                console.log('📞 Входящий звонок через WebSocket:', data);
+                
+                // Если есть ожидающий звонок из push, обновляем его данными
+                if (incomingCallData && incomingCallData.from === data.from) {
+                    console.log('🔄 Обновляем данные звонка из push');
+                    incomingCallData.offer = data.offer;
+                } else {
+                    // Обычный входящий звонок
+                    handleIncomingCall(data);
+                }
             });
             
             socket.on('call-answered', (data) => {
@@ -995,6 +1034,11 @@
             document.getElementById('incomingCallModal').classList.add('hidden');
             const data = incomingCallData;
             
+            if (!data) {
+                console.error('❌ Нет данных звонка');
+                return;
+            }
+            
             currentCall = { id: data.from, name: data.fromName };
             showStatus(`📞 Принимаю звонок от ${data.fromName}...`, 'status-calling');
             
@@ -1035,19 +1079,24 @@
                     }
                 };
                 
-                await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-                
-                const answer = await pc.createAnswer({
-                    offerToReceiveAudio: true,
-                    offerToReceiveVideo: false
-                });
-                
-                await pc.setLocalDescription(answer);
-                
-                socket.emit('answer', {
-                    to: data.from,
-                    answer: answer
-                });
+                // Если есть offer, принимаем звонок, если нет - ждем
+                if (data.offer) {
+                    await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+                    
+                    const answer = await pc.createAnswer({
+                        offerToReceiveAudio: true,
+                        offerToReceiveVideo: false
+                    });
+                    
+                    await pc.setLocalDescription(answer);
+                    
+                    socket.emit('answer', {
+                        to: data.from,
+                        answer: answer
+                    });
+                } else {
+                    console.log('⏳ Ожидаем offer от собеседника...');
+                }
                 
                 document.getElementById('muteBtn').disabled = false;
                 document.getElementById('endCallBtn').disabled = false;
