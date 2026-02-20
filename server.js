@@ -11,21 +11,16 @@ try {
     admin = require("firebase-admin");
     const fs = require('fs');
     
-    // Путь к секретному файлу на Render
     const secretFilePath = '/etc/secrets/serviceAccountKey.json';
     
     if (fs.existsSync(secretFilePath)) {
         const serviceAccount = JSON.parse(fs.readFileSync(secretFilePath, 'utf8'));
-        
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount)
         });
         console.log("✅ Firebase успешно инициализирован из секретного файла!");
-        console.log("📁 Файл загружен:", secretFilePath);
     } else {
-        console.log("⚠️ Firebase отключен - файл не найден по пути:", secretFilePath);
-        console.log("📁 Текущая директория:", process.cwd());
-        console.log("📁 Содержимое /etc/secrets:", fs.readdirSync('/etc/secrets').join(', '));
+        console.log("⚠️ Firebase отключен - файл не найден");
     }
 } catch (error) {
     console.error("❌ Ошибка инициализации Firebase:", error.message);
@@ -35,7 +30,7 @@ try {
 // Middleware
 // ------------------------
 app.use(express.static("public"));
-app.use(express.json()); // Для приема JSON
+app.use(express.json());
 
 // ------------------------
 // Users и токены
@@ -55,7 +50,7 @@ app.post("/save-token", (req, res) => {
 });
 
 // ------------------------
-// Функция отправки push для обычного звонка (ТОЛЬКО ДОБАВЛЕН ЗВУК)
+// Функция отправки push для обычного звонка (БЕЗ notification)
 // ------------------------
 async function sendPushNotification(username, callData) {
     const token = userTokens[username];
@@ -76,11 +71,7 @@ async function sendPushNotification(username, callData) {
         },
         android: { 
             priority: "high", 
-            ttl: 24 * 60 * 60 * 1000, // 24 часа
-            notification: {  // 🔥 ТОЛЬКО ЭТО ДОБАВЛЕНО
-                sound: "default",
-                vibrate: [1000, 500, 1000, 500]
-            }
+            ttl: 24 * 60 * 60 * 1000
         }
     };
 
@@ -93,7 +84,7 @@ async function sendPushNotification(username, callData) {
 }
 
 // ------------------------
-// Функция отправки push для переадресации (ТОЛЬКО ДОБАВЛЕН ЗВУК)
+// Функция отправки push для переадресации (БЕЗ notification)
 // ------------------------
 async function sendForwardPushNotification(username, forwardData) {
     const token = userTokens[username];
@@ -117,11 +108,7 @@ async function sendForwardPushNotification(username, forwardData) {
         },
         android: { 
             priority: "high",
-            ttl: 24 * 60 * 60 * 1000,
-            notification: {  // 🔥 ТОЛЬКО ЭТО ДОБАВЛЕНО
-                sound: "default",
-                vibrate: [1000, 500, 1000, 500]
-            }
+            ttl: 24 * 60 * 60 * 1000
         }
     };
 
@@ -151,9 +138,7 @@ io.on("connection", (socket) => {
         if (!target) return;
 
         console.log(`📞 Звонок от ${socket.username} к ${target.name}`);
-        console.log(`📞 socket.username = ${socket.username}`);
 
-        // WebSocket (всегда)
         io.to(data.to).emit("incoming-call", {
             from: socket.id,
             fromName: socket.username,
@@ -161,14 +146,11 @@ io.on("connection", (socket) => {
             trustedByName: data.trustedByName || null
         });
 
-        // Push уведомление (если Firebase есть)
         if (admin) {
             sendPushNotification(target.name, {
                 caller: socket.username,
                 call_id: Date.now().toString()
             });
-        } else {
-            console.log("⚠️ Firebase не инициализирован, push не отправлен");
         }
     });
 
@@ -202,7 +184,6 @@ io.on("connection", (socket) => {
         if (trusted && target) {
             console.log(`🔄 Запрос переадресации от ${socket.username} к ${target.name} через ${trusted.name}`);
             
-            // Отправляем через WebSocket
             io.to(data.trustedId).emit("forward-request", {
                 callerId: socket.id,
                 callerName: socket.username,
@@ -211,7 +192,6 @@ io.on("connection", (socket) => {
                 trustedName: trusted.name
             });
 
-            // 🔥 PUSH ДЛЯ ДОВЕРИТЕЛЯ
             if (admin) {
                 sendForwardPushNotification(trusted.name, {
                     callerName: socket.username,
@@ -231,7 +211,6 @@ io.on("connection", (socket) => {
         
         if (target && caller && trusted) {
             console.log(`✅ Доверитель ${trusted.name} одобрил звонок от ${caller.name} к ${target.name}`);
-            
             io.to(data.callerId).emit("forward-approved", {
                 targetId: data.targetId,
                 targetName: data.targetName,
