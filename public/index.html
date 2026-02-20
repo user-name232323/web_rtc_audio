@@ -1030,16 +1030,25 @@
             document.getElementById('incomingCallModal').classList.remove('hidden');
         }
 
-        async function acceptCall() {
-            // 🔥 ОСТАНАВЛИВАЕМ МЕЛОДИЮ
+        // ========== ФУНКЦИЯ ДЛЯ ОСТАНОВКИ МЕЛОДИИ ==========
+        function stopRingtone() {
             if (window.Android) {
                 try {
                     window.Android.stopRingtone();
                     console.log("🔇 Мелодия остановлена");
+                    return true;
                 } catch (e) {
                     console.log("Ошибка остановки мелодии:", e);
+                    return false;
                 }
             }
+            console.log("⚠️ Android интерфейс не доступен");
+            return false;
+        }
+
+        async function acceptCall() {
+            // 🔥 ОСТАНАВЛИВАЕМ МЕЛОДИЮ ПРИ ОТВЕТЕ
+            stopRingtone();
 
             document.getElementById('incomingCallModal').classList.add('hidden');
             const data = incomingCallData;
@@ -1121,6 +1130,9 @@
         }
 
         function declineCall() {
+            // 🔥 ОСТАНАВЛИВАЕМ МЕЛОДИЮ ПРИ ОТКЛОНЕНИИ
+            stopRingtone();
+            
             document.getElementById('incomingCallModal').classList.add('hidden');
             incomingCallData = null;
         }
