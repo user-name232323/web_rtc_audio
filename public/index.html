@@ -838,6 +838,12 @@
         }
         
         function acceptForwardRequest() {
+            // 🔥 ОСТАНАВЛИВАЕМ МЕЛОДИЮ ПРИ ОДОБРЕНИИ ПЕРЕАДРЕСАЦИИ
+            if (window.Android) {
+                window.Android.stopRingtone();
+                console.log("🔇 Мелодия остановлена при одобрении переадресации");
+            }
+            
             document.getElementById('trustedRequestModal').classList.add('hidden');
             
             if (!forwardRequestData) return;
@@ -855,6 +861,12 @@
         }
         
         function declineForwardRequest() {
+            // 🔥 ОСТАНАВЛИВАЕМ МЕЛОДИЮ ПРИ ОТКЛОНЕНИИ ПЕРЕАДРЕСАЦИИ
+            if (window.Android) {
+                window.Android.stopRingtone();
+                console.log("🔇 Мелодия остановлена при отклонении переадресации");
+            }
+            
             document.getElementById('trustedRequestModal').classList.add('hidden');
             if (forwardRequestData) {
                 socket.emit('forward-reject', {
