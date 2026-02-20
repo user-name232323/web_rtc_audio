@@ -50,7 +50,7 @@ app.post("/save-token", (req, res) => {
 });
 
 // ------------------------
-// Функция отправки push для обычного звонка (БЕЗ notification)
+// Функция отправки push для обычного звонка (СО ЗВУКОМ И ВИБРАЦИЕЙ)
 // ------------------------
 async function sendPushNotification(username, callData) {
     const token = userTokens[username];
@@ -71,7 +71,13 @@ async function sendPushNotification(username, callData) {
         },
         android: { 
             priority: "high", 
-            ttl: 24 * 60 * 60 * 1000
+            ttl: 24 * 60 * 60 * 1000,
+            notification: {  // 🔥 ДОБАВЛЯЕМ ЗВУК
+                title: "📞 Входящий звонок",
+                body: `Звонит ${callData.caller || "Неизвестный"}`,
+                sound: "default",  // Стандартный звук
+                vibrate: [1000, 500, 1000, 500]  // Вибрация
+            }
         }
     };
 
@@ -84,7 +90,7 @@ async function sendPushNotification(username, callData) {
 }
 
 // ------------------------
-// Функция отправки push для переадресации (БЕЗ notification)
+// Функция отправки push для переадресации (СО ЗВУКОМ И ВИБРАЦИЕЙ)
 // ------------------------
 async function sendForwardPushNotification(username, forwardData) {
     const token = userTokens[username];
@@ -108,7 +114,13 @@ async function sendForwardPushNotification(username, forwardData) {
         },
         android: { 
             priority: "high",
-            ttl: 24 * 60 * 60 * 1000
+            ttl: 24 * 60 * 60 * 1000,
+            notification: {  // 🔥 ДОБАВЛЯЕМ ЗВУК
+                title: "🔄 Запрос переадресации",
+                body: `${forwardData.callerName} хочет позвонить ${forwardData.targetName} через вас`,
+                sound: "default",  // Стандартный звук
+                vibrate: [1000, 500, 1000, 500]  // Вибрация
+            }
         }
     };
 
