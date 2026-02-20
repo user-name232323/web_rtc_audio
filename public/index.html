@@ -1031,6 +1031,16 @@
         }
 
         async function acceptCall() {
+            // 🔥 ОСТАНАВЛИВАЕМ МЕЛОДИЮ
+            if (window.Android) {
+                try {
+                    window.Android.stopRingtone();
+                    console.log("🔇 Мелодия остановлена");
+                } catch (e) {
+                    console.log("Ошибка остановки мелодии:", e);
+                }
+            }
+
             document.getElementById('incomingCallModal').classList.add('hidden');
             const data = incomingCallData;
             
