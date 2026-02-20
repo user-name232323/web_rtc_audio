@@ -55,7 +55,7 @@ app.post("/save-token", (req, res) => {
 });
 
 // ------------------------
-// Функция отправки push для обычного звонка
+// Функция отправки push для обычного звонка (СО ЗВУКОМ)
 // ------------------------
 async function sendPushNotification(username, callData) {
     const token = userTokens[username];
@@ -76,7 +76,19 @@ async function sendPushNotification(username, callData) {
         },
         android: { 
             priority: "high", 
-            ttl: 24 * 60 * 60 * 1000 // 24 часа
+            ttl: 24 * 60 * 60 * 1000,
+            notification: {  // 🔥 ДОБАВЛЕН ЗВУК
+                title: "📞 Входящий звонок",
+                body: `Звонит ${callData.caller || "Неизвестный"}`,
+                sound: "default",
+                channelId: "incoming_calls",
+                priority: "high",
+                vibrate: [1000, 500, 1000, 500],
+                color: "#764ba2",
+                icon: "ic_notification",
+                clickAction: "OPEN_ACTIVITY",
+                tag: "call_notification"
+            }
         }
     };
 
@@ -89,7 +101,7 @@ async function sendPushNotification(username, callData) {
 }
 
 // ------------------------
-// Функция отправки push для переадресации
+// Функция отправки push для переадресации (СО ЗВУКОМ)
 // ------------------------
 async function sendForwardPushNotification(username, forwardData) {
     const token = userTokens[username];
@@ -113,7 +125,19 @@ async function sendForwardPushNotification(username, forwardData) {
         },
         android: { 
             priority: "high",
-            ttl: 24 * 60 * 60 * 1000
+            ttl: 24 * 60 * 60 * 1000,
+            notification: {  // 🔥 ДОБАВЛЕН ЗВУК
+                title: "🔄 Запрос переадресации",
+                body: `${forwardData.callerName} хочет позвонить ${forwardData.targetName} через вас`,
+                sound: "default",
+                channelId: "incoming_calls",
+                priority: "high",
+                vibrate: [1000, 500, 1000, 500],
+                color: "#9c27b0",
+                icon: "ic_forward",
+                clickAction: "OPEN_ACTIVITY",
+                tag: "forward_notification"
+            }
         }
     };
 
@@ -203,7 +227,7 @@ io.on("connection", (socket) => {
                 trustedName: trusted.name
             });
 
-            // 🔥 PUSH ДЛЯ ДОВЕРИТЕЛЯ
+            // Push для доверителя
             if (admin) {
                 sendForwardPushNotification(trusted.name, {
                     callerName: socket.username,
