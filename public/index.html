@@ -516,6 +516,7 @@
         console.log("🔍 Android доступен:", !!window.Android);
         if (window.Android) {
             console.log("🔍 Метод getToken доступен:", typeof window.Android.getToken === 'function');
+            console.log("🔍 Метод stopRingtone доступен:", typeof window.Android.stopRingtone === 'function');
         }
 
         let socket;
@@ -1030,23 +1031,36 @@
             document.getElementById('incomingCallModal').classList.remove('hidden');
         }
 
-        // ========== ФУНКЦИЯ ДЛЯ ОСТАНОВКИ МЕЛОДИИ ==========
+        // ========== УЛУЧШЕННАЯ ФУНКЦИЯ ДЛЯ ОСТАНОВКИ МЕЛОДИИ ==========
         function stopRingtone() {
+            console.log("🔍 stopRingtone() вызвана");
+            console.log("🔍 window.Android доступен?", !!window.Android);
+            
             if (window.Android) {
-                try {
-                    window.Android.stopRingtone();
-                    console.log("🔇 Мелодия остановлена");
-                    return true;
-                } catch (e) {
-                    console.log("Ошибка остановки мелодии:", e);
+                console.log("🔍 Тип stopRingtone:", typeof window.Android.stopRingtone);
+                
+                if (typeof window.Android.stopRingtone === 'function') {
+                    try {
+                        window.Android.stopRingtone();
+                        console.log("✅ Команда stopRingtone отправлена в APK");
+                        return true;
+                    } catch (e) {
+                        console.error("❌ Ошибка при вызове stopRingtone:", e);
+                        return false;
+                    }
+                } else {
+                    console.log("⚠️ stopRingtone не функция");
                     return false;
                 }
+            } else {
+                console.log("⚠️ Android интерфейс не доступен");
+                return false;
             }
-            console.log("⚠️ Android интерфейс не доступен");
-            return false;
         }
 
         async function acceptCall() {
+            console.log("📞 acceptCall() начата");
+            
             // 🔥 ОСТАНАВЛИВАЕМ МЕЛОДИЮ ПРИ ОТВЕТЕ
             stopRingtone();
 
@@ -1130,6 +1144,8 @@
         }
 
         function declineCall() {
+            console.log("❌ declineCall() начата");
+            
             // 🔥 ОСТАНАВЛИВАЕМ МЕЛОДИЮ ПРИ ОТКЛОНЕНИИ
             stopRingtone();
             
